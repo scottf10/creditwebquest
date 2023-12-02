@@ -1,0 +1,608 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<!---Scott Florence
+   -Pick up football and complete passes while avoiding defenders
+   -11/21/2017-->
+<head>
+    <meta charset="utf-8" />
+    <title>Clarion County Blitz</title>
+    <link href="imgs/guy_down.png" rel="shortcut icon" />
+    <script>
+        // globals
+        var canvas,
+            ctx,
+            left = false,
+            right = false,
+            faster = false,
+            slower = false,
+            throwing = false,
+            pickUpSound = new Audio('sounds/pickUp.wav');
+            pickUp1Sound = new Audio('sounds/pickUp1.wav');
+            catchSound = new Audio('sounds/ballthud.wav');
+            themeSound = new Audio('sounds/theme.mp3');
+            throwSound = new Audio('sounds/throwBall.wav');
+            tackleSound = new Audio('sounds/tackle.wav');
+            whistleSound = new Audio('sounds/whistle.wav');
+            step = 0,
+            step1 = 0,
+            step2 = 0,
+            step3 = 0,
+            step4 = 0,
+            step5 = 0,
+            obst = [],
+            pwrUp = [],
+            pwrUp1 = [],
+            rcvr = [],
+            rcvr1 = [],
+            bltz = [],
+            pass = [],
+            locX = 320,
+            locY = 100,
+            animationId = 0,
+            frames = 0,
+            points = 0,
+            ammo = 0,
+            highScore = 0,
+            running = false;
+        // image vars
+        var guyDown,
+            guyLeft,
+            guyRight,
+            crash,
+            guyFast,
+            guySlow,
+            guyThrow,
+            guyDefense,
+            guyDefense1,
+            guyReceiver,
+            guyReceiver1,
+            guyBlitz,
+            ref,
+            throwFootball,
+            up;
+        // after DOM built
+        window.onload = function () {
+            // create relationship to canvas object
+            canvas = document.getElementById("can");
+            ctx = canvas.getContext("2d");
+            points;
+            ammo;
+            highScore;
+            // instantiate image variables
+            guyDown = new Image(); guyDown.src = "imgs/guy_down.png";
+            guyLeft = new Image(); guyLeft.src = "imgs/guy_left.png";
+            guyRight = new Image(); guyRight.src = "imgs/guy_right.png";
+            guyFast = new Image(); guyFast.src = "imgs/guy_fast.png";
+            guySlow = new Image(); guySlow.src = "imgs/guy_slow.png";
+            guyThrow = new Image(); guyThrow.src = "imgs/guy_throw.png";
+            guyDefense = new Image(); guyDefense.src = "imgs/guy_defense.png";
+            guyDefense1 = new Image(); guyDefense1.src = "imgs/guy_defense1.png";
+            guyReceiver = new Image(); guyReceiver.src = "imgs/guy_receiver3.png";
+            guyReceiver1 = new Image(); guyReceiver1.src = "imgs/guy_receiver2.png";
+            guyBlitz = new Image(); guyBlitz.src = "imgs/guy_blitz.png";
+            crash = new Image(); crash.src = "imgs/crash.png";
+            ref = new Image(); ref.src = "imgs/ref.png";
+            football = new Image(); football.src = "imgs/football.png";
+            goldenFootball = new Image(); goldenFootball.src = "imgs/golden_football.png";
+            throwFootball = new Image(); throwFootball.src = "imgs/throw_football.png";
+            slash = new Image(); slash.src = "imgs/slash.png";
+            up = new Image(); up.src = "imgs/up.png";
+            // event listeners to make code respond to events
+            window.addEventListener("keydown", (function (e) {
+                if (e.keyCode == 37) { // left arrow
+                    left = true;
+                }
+                else if (e.keyCode == 39) { // right arrow
+                    right = true;
+                }
+                else if (e.keyCode == 40) { // down arrow
+                    faster = true;
+                }
+                else if (e.keyCode == 38) { // up arrow
+                    slower = true;
+                }
+                else if (e.keyCode == 84) { // t 
+                    throwing = true;
+                }
+            }))
+            window.addEventListener("keyup", (function (e) {
+                if (e.keyCode == 37) {
+                    left = false;
+                }
+                else if (e.keyCode == 39) {
+                    right = false;
+                }
+                else if (e.keyCode == 40) {
+                    faster = false;
+                }
+                else if (e.keyCode == 38) {
+                    slower = false;
+                }
+                else if (e.keyCode == 84) { 
+                    throwing = false;
+                }
+                else if (e.keyCode == 32) { // spacebar
+                    if (!running) {
+                        step = 0;
+                        step1 = 0;
+                        step2 = 0;
+                        step3 = 0;
+                        step4 = 0;
+                        step5 = 0;
+                        obst = [];
+                        pwrUp = [];
+                        pwrUp1 = [];
+                        rcvr = [];
+                        rcvr1 = [];
+                        bltz = [];
+                        pass = [];
+                        locX = 320;
+                        locY = 100;
+                        running = true;
+                        whistleSound.play();
+                        runSki();
+                    }
+                }
+            }))
+            // run the main program loop
+            runSki();
+        };
+        // constructor  creates an obstacle object with a type based on the result of the rng
+        function Obstacle() {
+            var num = Math.floor(Math.random() * 50);
+            if (num === 0) {
+                this.type = ref;
+            }
+            else if (num <= 25) {
+                this.type = guyDefense1;
+            }
+            else {
+                this.type = guyDefense;
+            }
+            //generates random location to spawn obstacle
+            this.x = Math.floor(Math.random() * 1281);
+            this.y = 640;
+
+            //updates the points statistics and prints to divs
+            points = points + 1;
+            document.getElementById("points").innerHTML = "POINTS: " + points;
+            document.getElementById("ammo").innerHTML = "FOOTBALLS: " + ammo;
+            document.getElementById("highScore").innerHTML = "HIGH SCORE: " + highScore;
+            //play music
+            themeSound.play();
+            //Start instructions element
+            if (running = true){
+                document.getElementById("start").innerHTML = " ";
+            }
+        }
+        //creates PowerUp object (Regular Football)
+        function PowerUp() {
+            var num = Math.floor(Math.random() * 5);
+            if (num === 0) {
+                this.type = football;
+            }
+            else {
+                this.type = football;
+            }
+            //location of football when generated
+            this.x = Math.floor(Math.random() * 1281);
+            this.y = 640;
+        }
+        //creates PowerUp1 object (Golden Football)
+        function PowerUp1() {
+            var num = Math.floor(Math.random() * 5);
+            if (num === 0) {
+                this.type = goldenFootball;
+            }
+            else {
+                this.type = goldenFootball;
+            }
+            //location of football when generated
+            this.x = Math.floor(Math.random() * 1281);
+            this.y = 640;
+        }
+        //creates Receiver object (Receiver strafe right)
+        function Receiver() {
+            var num = Math.floor(Math.random() * 5);
+            if (num === 0) {
+                this.type = guyReceiver;
+            }
+            else {
+                this.type = guyReceiver;
+            }
+            //location of receiver when generated
+            this.x = Math.floor(Math.random() * 1281);
+            this.y = 640;
+        }
+        //creates Receiver1 object (Receiver strafe left)
+        function Receiver1() {
+            var num = Math.floor(Math.random() * 5);
+            if (num === 0) {
+                this.type = guyReceiver1;
+            }
+            else {
+                this.type = guyReceiver1;
+            }
+            //location of receiver1 when generated
+            this.x = Math.floor(Math.random() * 1281);
+            this.y = 640;
+        }
+        //creates Blitz object
+        function Blitz() {
+            var num = Math.floor(Math.random() * 5);
+            if (num === 0) {
+                this.type = guyBlitz;
+            }
+            else {
+                this.type = guyBlitz;
+            }
+            //location of blitzer when generated
+            this.x = Math.floor(Math.random() * 1281);
+            this.y = 640;
+        }
+        //creates Pass object
+        function Pass() {
+            if (throwing == true) {
+                this.type = throwFootball;
+            }
+            //position of pass object when generated
+            this.x = locX + 345;
+            this.y = locY - 20;
+        }
+        // Generates element that shows the text that updates locX and also the spacebar to reset instructions
+        function out(id, output) {
+            document.getElementById(id).innerHTML = output;
+        }
+        // main function: runs when called in the onload function and whenever the spacebar is pressed after a tackle
+        function runSki() {
+            // shifts horizontal location on the canvas to the left if left arrow is clicked
+            if (left == true) {
+                if (locX > -320) {
+                    locX -= 2;
+                }
+            }
+            //shifts horizontal location on the canvas to the right if right arrow is clicked
+            if (right == true) {
+                if (locX < 640 + 320) {
+                    locX += 2;
+                }
+            }
+            // clears canvas when new fresh game is started
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "rgb(0,0,0)";
+            ctx.fillRect(-10 - locX, 0, 10, canvas.height);
+            ctx.fillRect(640 * 2 + 20 - locX, 0, 10, canvas.height);
+            //Rate that obstacle spawn
+            var n = 6; // smaller number means higher chance that step will equal 0, higher chance of spawning an obstacle
+            step = (step + 1) % n; // %n means storing the remainder of ((step + 1) / n) in the var step
+            if (step == 0) {
+                obst.push(new Obstacle()); //creates obstacle object if conditions are met
+            }
+            //Rate that footballs spawn
+            var p = 100;
+            step1 = (step1 + 1) % p;
+            if (step1 == 0) {
+                pwrUp.push(new PowerUp()); //creates football object if conditions are met
+            }
+            //Rate that golden footballs spawn
+            var g = 1500;
+            step2 = (step2 + 1) % g;
+            if (step2 == 0) {
+                pwrUp1.push(new PowerUp1());//creates golden football object if conditions are met
+            }
+            //Rate that Receivers spawn
+            var r = 500;
+            step3 = (step3 + 1) % r;
+            if (step3 == 0) {
+                rcvr.push(new Receiver());//creates receiver object if conditions are met
+            }
+            //Rate that Receiver1s spawn
+            var w = 500;
+            step4 = (step4 + 1) % w;
+            if (step4 == 0) {
+                rcvr1.push(new Receiver1());//creates receiver object if conditions are met
+            }
+            //Rate that Blitzers spawn
+            var b = 100;
+            step5 = (step5 + 1) % b;
+            if (step5 == 0) {
+                bltz.push(new Blitz());//creates blitzer object if conditions are met
+            }
+            //Pass under these conditions
+            if (throwing == true && ammo > 0 && faster == false && slower == false) {
+                pass.push(new Pass());//creates football throw object
+                throwSound.play();//sound effect
+                ammo = ammo - 1;//reduces football count when ball is thrown
+            }
+            //draw obstacles
+            for (var i = 0; i < obst.length; i++) {
+                var o = obst[i];
+                o.y -= 10;//speed obsts move up the screen (higher number = faster speed)
+                if (faster == true) {
+                    o.y -= 4;
+                    points = points + 1; //points multiplier when sprinting
+                }
+                if (slower == true) {
+                    o.y += 4;
+                }
+                ctx.drawImage(o.type, o.x - locX, o.y);//draw
+
+                //when obstacles leaves the canvas, erase it from array
+                if (o.y < -30) {
+                    obst.splice(i, 1);
+                    i--;
+                }
+                // obstacles hit box calculation, proceeds to crash if steered into
+                var tX = o.x - locX + 5;
+                var tY = o.y + 5;
+                var d = Math.sqrt((tX - 320 + 3) * (tX - 320 + 3) + (tY - 100 + 5) * (tY - 100 + 5)); //hit box
+                //crash if character enters hit box
+                if (d < 20) {
+                    if (points > highScore) { //update high score
+                        highScore = points;
+                    }
+                    //tackle animation and point reset
+                    themeSound.pause();
+                    themeSound.currentTime = 0;
+                    tackleSound.play();
+                    ctx.drawImage(crash, 320, locY);
+                    running = false;
+                    points = 0;
+                    ammo = 0;
+                    document.getElementById("start").innerHTML = "PRESS SPACEBAR TO START";
+                    //reset animation
+                    if (animationId != 0) {
+                        cancelAnimationFrame(animationId);
+                        animationId = 0;
+                    }
+                    return;
+                }
+            }
+            ///////// Draw Footballs
+            for (var i = 0; i < pwrUp.length; i++) {
+                var o = pwrUp[i];
+                o.y -= 5;//speed footballs move up the screen 
+                if (faster == true) { //keep footballs speed constant in reference to the character
+                    o.y -= 2;
+                }
+                if (slower == true) {
+                    o.y += 2;
+                }
+                ctx.drawImage(o.type, o.x - locX, o.y);//draw
+                //when football leaves the canvas, erase it from array
+                if (o.y < -30) {
+                    pwrUp.splice(i, 1);
+                    i--;
+                }
+                ///////////// football up hit box
+                var tX = o.x - locX + 5;
+                var tY = o.y + 5;
+                var d = Math.sqrt((tX - 320 + 3) * (tX - 320 + 3) + (tY - 100 + 5) * (tY - 100 + 5)); //hit box
+                if (d < 28) { //if character hits hit box run code, bigger number = bigger hit box
+                    ctx.drawImage(up, 320, locY - 30);
+                    points = points + 1000;
+                    o.y = -30;
+                    ammo = ammo + 1;
+                    pickUpSound.play();
+                }
+            }
+            ///////// Draw Golden Footballs
+            for (var i = 0; i < pwrUp1.length; i++) {
+                var o = pwrUp1[i];
+                o.y -= 5;//speed golden balls move up the screen 
+                if (faster == true) { //keep footballs speed constant in reference to the character
+                    o.y -= 2;
+                }
+                if (slower == true) {
+                    o.y += 2;
+                }
+                ctx.drawImage(o.type, o.x - locX, o.y);//draw
+                // when football leaves the canvas, erase it from array
+                if (o.y < -30) {
+                    pwrUp1.splice(i, 1);
+                    i--;
+                }
+                ///////////// Golden ball hit box
+                var tX = o.x - locX + 5;
+                var tY = o.y + 5;
+                var d = Math.sqrt((tX - 320 + 3) * (tX - 320 + 3) + (tY - 100 + 5) * (tY - 100 + 5)); //hit box
+                if (d < 28) { //if character hits hit box run code, bigger number = bigger hit box
+                    ctx.drawImage(up, 320, locY - 30);
+                    points = points + 2000;
+                    o.y = -30;
+                    ammo = ammo + 10;
+                    pickUp1Sound.play();
+                }
+            }
+            ///////// Draw Receivers
+            for (var i = 0; i < rcvr.length; i++) {
+                var o = rcvr[i];
+                for (var j = 0; j < pass.length; j++) {
+                    var f = pass[j];
+                }
+                o.x += 1;//speed Receivers across up the screen
+                o.y -= 2;//speed Receivers move up the screen
+                if (faster == true) {//keep receiver speed constant in reference to the character
+                    o.y -= 2;
+                }
+                if (slower == true) {
+                    o.y += 2;
+                }
+                ctx.drawImage(o.type, o.x - locX, o.y);
+                // when receiver leaves the canvas, erase it from array
+                if (o.y < -30) {
+                    rcvr.splice(i, 1);
+                    i--;
+                }
+                ///////////// Receiver box
+                var tX = o.x - locX + 5;
+                var tY = o.y + 5;
+
+                var d = Math.sqrt((tX - 320 + 3) * (tX - 320 + 3) + (tY - 100 + 5) * (tY - 100 + 5)); //hit box receiver
+                if (d < 25) { //if character hits hit box run code
+                    ctx.drawImage(slash, 320, locY - 30);
+                    points = points - 1000;
+                    tackleSound.play();
+                    o.y = -30;
+                }
+            }
+            ///////// Draw Receiver1s
+            for (var i = 0; i < rcvr1.length; i++) {
+                var o = rcvr1[i];
+                o.x -= 1;//speed Receivers across up the screen
+                o.y -= 2;//speed Receivers move up the screen
+
+                if (faster == true) {//keep receiver speed constant in reference to the character
+                    o.y -= 2;
+                }
+                if (slower == true) {
+                    o.y += 2;
+                }
+                ctx.drawImage(o.type, o.x - locX, o.y);
+                // when receiver leaves the canvas, erase it from array
+                if (o.y < -30) {
+                    rcvr1.splice(i, 1);
+                    i--;
+                }
+                //////////// Receiver1 box
+                var tX = o.x - locX + 5;
+                var tY = o.y + 5;
+                var d = Math.sqrt((tX - 320 + 3) * (tX - 320 + 3) + (tY - 100 + 5) * (tY - 100 + 5)); //hit box
+                if (d < 25) { //if character hits hit box run code
+                    ctx.drawImage(slash, 320, locY - 30);
+                    points = points - 1000;
+                    tackleSound.play();
+                    o.y = -30;
+                }
+            }
+            ///////// Draw Blitzers
+            for (var i = 0; i < bltz.length; i++) {
+                var o = bltz[i];
+                o.y -= 12;//speed blitzers move up the screen
+                ctx.drawImage(o.type, o.x - locX, o.y);
+                if (faster == true) {//keep blitzer speed constant in reference to the character
+                    o.y -= 2;
+                }
+                if (slower == true) {
+                    o.y += 2;
+                }
+                if (o.y < -30) {
+                    bltz.splice(i, 1);
+                    i--;
+                }
+                ///////////// Blitzer box
+                var tX = o.x - locX + 5;
+                var tY = o.y + 5;
+                var d = Math.sqrt((tX - 320 + 3) * (tX - 320 + 3) + (tY - 100 + 5) * (tY - 100 + 5)); //hit box
+                if (d < 25) { //if character hits hit box run code
+                    if (points > highScore) { //update high score
+                        highScore = points;
+                    }
+                    //tackle animation, reset stats
+                    themeSound.pause();
+                    themeSound.currentTime = 0;
+                    tackleSound.play();
+                    ctx.drawImage(crash, 320, locY);
+                    running = false;
+                    points = 0;
+                    ammo = 0;
+                    document.getElementById("start").innerHTML = "PRESS SPACEBAR TO START";
+                    if (animationId != 0) {
+                        cancelAnimationFrame(animationId);
+                        animationId = 0;
+                    }
+                    return;
+                }
+            }
+            ///////// Draw Passes
+            for (var i = 0; i < pass.length; i++) {
+                var o = pass[i];
+                o.y += 10;//speed Passes move down the screen
+                ctx.drawImage(o.type, o.x - locX, o.y);
+                // when ball leaves canvas, delete from array
+                if (o.y > 620) {
+                    pass.splice(i, 1);
+                    i--;
+                }
+                ///////////// Pass box******************************************************************
+                //location of character
+                var tX = o.x - locX + 5;
+                var tY = o.y + 5;
+                ///////// Right Strafe Receiver
+                for (var j = 0; j < rcvr.length; j++) {
+                    //store receiver in variables
+                    var f = rcvr[j];
+                    // receiver location
+                    var fX = f.x - locX + 5;
+                    var fY = f.y + 5;
+                    //Football to receiver hit box detection
+                    var c = Math.sqrt((tX - fX + 5) * (tX - fX + 5) + (tY - fY + 5) * (tY - fY + 5)); //hit box football               
+                    if (c < 25) { //if character hits hit box run code
+                        catchSound.play();
+                        points = points + 2500;
+                        //move ball object off screen
+                        o.y = 621;
+                        o.x = 0;
+                    }
+                }
+                ///////// Left Strafe Receiver
+                for (var j = 0; j < rcvr1.length; j++) {
+                    var f = rcvr1[j];
+                    //right strafe receiver location
+                    var fX = f.x - locX + 5;
+                    var fY = f.y + 5;
+                    //Football to receiver hit box detection
+                    var c = Math.sqrt((tX - fX + 5) * (tX - fX + 5) + (tY - fY + 5) * (tY - fY + 5)); //hit box football               
+                    if (c < 25) { //if character hits hit box run code
+                        catchSound.play();
+                        points = points + 2500;
+                        //move ball object off screen
+                        o.y = 621;
+                        o.x = 0;
+                    }
+                }
+            }
+            //////////////////////////////////////////////////////////////
+            // Draw the different images depending on which key is being pressed
+            if (running == true) {
+                if (left == true) {
+                    ctx.drawImage(guyLeft, 320, locY);
+                }
+                else if (right == true) {
+                    ctx.drawImage(guyRight, 320, locY);
+                }
+                else if (slower == true) {
+                    ctx.drawImage(guySlow, 320, locY);
+                }
+                else if (faster == true) {
+                    ctx.drawImage(guyFast, 320, locY);
+                }
+                else if (throwing == true) {
+                    ctx.drawImage(guyThrow, 320, locY);
+                }
+                else {
+                    ctx.drawImage(guyDown, 320, locY);
+                }
+                //Display horizontal location on canvas and spacebar restart text
+                out("outToScreen", "Spacebar Restarts! &nbsp; &nbsp;   LocX is currently: " + locX);
+                // handles javascript animation with a timer
+                animationId = requestAnimationFrame(runSki); // goal 60 frames/sec
+            }
+        } //end of script
+    </script>
+</head>
+<body style="text-align:center; background-color: magenta;font-family:verdana;font-weight:bold;">
+    <div id="start" style="margin:10px;float:right;position:fixed;">PRESS SPACEBAR TO START</div>
+    <p style="float:left;text-align:left;font-size:18pt;font-weight:bold;margin:30px;padding:10px;color:white;position:fixed;line-height:180%;">
+        Ball Pickup = 1000 points<br/>Golden Ball Pickup = 2000 points <br/>Complete Pass = 2500 points<br/>Teammate Collision
+        = -1000 points<br/><br/><br/>
+        <u>Controls</u>
+        <br/>Up Arrow: Slow down<br/>Left Arrow: Move Left<br/>Right Arrow: Move Right<br>Down Arrow: Sprint + points<br/>t:
+        Throw pass<br/></p>
+    <canvas id="can" width="640" height="640" style="background-color: #39b54a; border:8px solid white;"></canvas>
+    <div id="outToScreen"></div>
+    <div id="points" style="margin:0auto;background-color:blue;color:yellow;padding:10px;font-size:26pt;">POINTS:</div>
+    <div id="ammo" style="margin:0auto;color:white;background-color:red;padding:10px;font-size:26pt;">FOOTBALLS:</div>
+    <div id="highScore" style="margin:0auto;background-color:white;padding:10px;font-size:26pt;">HIGH SCORE:</div>
+</body>
+</html>
