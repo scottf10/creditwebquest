@@ -106,16 +106,16 @@
                 }
             }))
             window.addEventListener("keyup", (function (e) {
-                if (e.keyCode == 37) {
+                if (e.keyCode == 37 || e.keyCode == 65) {
                     left = false;
                 }
-                else if (e.keyCode == 39) {
+                else if (e.keyCode == 39 || e.keyCode == 68) {
                     right = false;
                 }
-                else if (e.keyCode == 40) {
+                else if (e.keyCode == 40 || e.keyCode == 83) {
                     faster = false;
                 }
-                else if (e.keyCode == 38) {
+                else if (e.keyCode == 38 || e.keyCode == 87) {
                     slower = false;
                 }
                 else if (e.keyCode == 84) { 
